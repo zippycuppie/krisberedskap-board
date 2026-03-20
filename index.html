@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Krisberedskap — App Build Board</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F8F9FA;--surface:#FFFFFF;--surface2:#F1F3F5;--surface3:#E9ECEF;
+  --border:#DEE2E6;--border2:#CED4DA;
+  --text:#212529;--text2:#495057;--text3:#868E96;
+  --blue:#228BE6;--blue-bg:#E7F5FF;--blue-border:#74C0FC;
+  --green:#2F9E44;--green-bg:#EBFBEE;--green-border:#8CE99A;
+  --yellow:#F59F00;--yellow-bg:#FFF9DB;--yellow-border:#FFD43B;
+  --red:#E03131;--red-bg:#FFF5F5;--red-border:#FFA8A8;
+  --orange:#D9480F;--orange-bg:#FFF4E6;--orange-border:#FFC078;
+  --purple:#7048E8;--purple-bg:#F3F0FF;--purple-border:#B197FC;
+  --radius:8px;--radius-lg:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1);
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#0D1117;--surface:#161B22;--surface2:#21262D;--surface3:#30363D;
+    --border:#30363D;--border2:#444C56;
+    --text:#E6EDF3;--text2:#8B949E;--text3:#6E7681;
+    --blue:#388BFD;--blue-bg:#0D1F30;--blue-border:#1F6FEB;
+    --green:#3FB950;--green-bg:#0D1F0F;--green-border:#196C2E;
+    --yellow:#D29922;--yellow-bg:#1F1A0D;--yellow-border:#9E6A03;
+    --red:#F85149;--red-bg:#200D0D;--red-border:#6E1C1C;
+    --orange:#E3660F;--orange-bg:#1F100A;--orange-border:#7A2F0A;
+    --purple:#A371F7;--purple-bg:#160D24;--purple-border:#553098;
+  }
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
+
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;box-shadow:var(--shadow)}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;color:var(--text)}
+.logo-badge{background:var(--red);color:white;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:.5px}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{padding:6px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;cursor:pointer;font-weight:500;white-space:nowrap;transition:all .15s}
+.btn:hover{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+.btn-primary{background:var(--blue);color:white;border-color:var(--blue)}
+.btn-primary:hover{opacity:.9;color:white}
+input[type=text],select{padding:6px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;height:32px}
+input[type=text]:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(34,139,230,.15)}
+
+/* STATS BAR */
+.stats-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;gap:16px;overflow-x:auto}
+.stat{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);white-space:nowrap}
+.stat-val{font-weight:700;font-size:14px;color:var(--text)}
+.stat-dot{width:8px;height:8px;border-radius:50%}
+.progress-wrap{display:flex;align-items:center;gap:8px}
+.progress-bar{width:120px;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .3s}
+
+/* TOOLBAR */
+.toolbar{padding:12px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* BOARD */
+.board{display:flex;gap:14px;padding:0 20px 24px;overflow-x:auto;align-items:flex-start;min-height:calc(100vh - 180px)}
+.col{min-width:270px;width:270px;background:var(--surface2);border-radius:var(--radius-lg);border:1px solid var(--border);display:flex;flex-direction:column;max-height:calc(100vh - 200px);transition:border-color .15s}
+.col.drag-over{border-color:var(--blue);background:var(--blue-bg)}
+.col-header{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface2);border-radius:var(--radius-lg) var(--radius-lg) 0 0;z-index:2}
+.col-title{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--text)}
+.col-dot{width:9px;height:9px;border-radius:50%}
+.col-count{font-size:11px;color:var(--text3);background:var(--surface);border:1px solid var(--border);padding:1px 7px;border-radius:20px}
+.col-body{padding:8px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;flex:1}
+.col-body::-webkit-scrollbar{width:4px}
+.col-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.add-btn{margin:0 8px 10px;padding:7px;border:1px dashed var(--border);border-radius:var(--radius);background:transparent;color:var(--text3);font-size:12px;cursor:pointer;text-align:center;transition:all .15s}
+.add-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 12px;cursor:grab;transition:all .15s;position:relative}
+.card:hover{box-shadow:var(--shadow-md);border-color:var(--border2);transform:translateY(-1px)}
+.card:active{cursor:grabbing}
+.card.dragging{opacity:.4;transform:rotate(1deg)}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:5px}
+.card-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.35;flex:1}
+.cat-badge{font-size:9px;font-weight:600;padding:2px 6px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-top:1px;letter-spacing:.3px}
+.card-desc{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:7px}
+.card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.tag{font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid;font-weight:500}
+.tag-affiliate{background:var(--yellow-bg);color:var(--yellow);border-color:var(--yellow-border)}
+.tag-reminder{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+.tag-interactive{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-border)}
+.tag-map{background:var(--purple-bg);color:var(--purple);border-color:var(--purple-border)}
+.tag-crisis{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
+.tag-high{background:var(--orange-bg);color:var(--orange);border-color:var(--orange-border)}
+.tag-low{background:var(--surface2);color:var(--text3);border-color:var(--border)}
+.card-note{background:var(--surface2);border-radius:5px;padding:5px 8px;font-size:11px;color:var(--text2);font-style:italic;margin-bottom:6px;border-left:2px solid var(--border2)}
+.card-footer{display:flex;align-items:center;justify-content:space-between;padding-top:7px;border-top:1px solid var(--border)}
+.card-id{font-size:10px;color:var(--text3);font-family:monospace}
+.card-actions{display:flex;gap:3px;opacity:0;transition:opacity .15s}
+.card:hover .card-actions{opacity:1}
+.act-btn{font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .1s}
+.act-btn:hover{background:var(--surface2);color:var(--text)}
+.act-btn.danger{color:var(--red)}
+.act-btn.danger:hover{background:var(--red-bg);border-color:var(--red-border)}
+.empty-col{text-align:center;padding:24px 12px;font-size:12px;color:var(--text3)}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md)}
+.modal h2{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text)}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.field input,.field textarea,.field select{width:100%;padding:8px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;font-family:inherit}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(34,139,230,.15)}
+.field textarea{min-height:72px;resize:vertical}
+.checkgroup{display:flex;flex-wrap:wrap;gap:8px}
+.checklabel{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);cursor:pointer;padding:4px 8px;border-radius:var(--radius);border:1px solid var(--border);transition:all .15s}
+.checklabel:hover{border-color:var(--blue);color:var(--text)}
+.checklabel input{accent-color:var(--blue)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+
+/* HIGHLIGHT */
+mark{background:#FFE066;color:#333;border-radius:2px;padding:0 1px}
+@media(prefers-color-scheme:dark){mark{background:#7A6500;color:#FFE066}}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{height:6px;width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">
+      <span>🛡️</span>
+      <span>Krisberedskap</span>
+      <span class="logo-badge">BUILD BOARD</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <input type="text" id="search" placeholder="Search pages..." style="width:160px" oninput="render()">
+    <select id="fCat" onchange="render()">
+      <option value="">All categories</option>
+      <option>Förberedelser</option><option>Planera</option>
+      <option>Omvärldsbevakning</option><option>Krisläge</option>
+      <option>Verktyg</option><option>Profil</option>
+    </select>
+    <select id="fTag" onchange="render()">
+      <option value="">All tags</option>
+      <option>affiliate</option><option>reminder</option>
+      <option>interactive</option><option>map</option><option>crisis</option>
+    </select>
+    <button class="btn btn-primary" onclick="openModal(null)">+ Add page</button>
+    <button class="btn" onclick="exportJSON()">↓ Export JSON</button>
+    <button class="btn" onclick="if(confirm('Reset all progress?'))reset()">Reset</button>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="board" id="board"></div>
+<div id="modalWrap"></div>
+
+<script>
+const COLS=[
+  {id:'todo',label:'To build',color:'#868E96'},
+  {id:'design',label:'Design needed',color:'#F59F00'},
+  {id:'inprogress',label:'In progress',color:'#228BE6'},
+  {id:'review',label:'Review / test',color:'#7048E8'},
+  {id:'done',label:'Done',color:'#2F9E44'},
+];
+
+const CAT_STYLES={
+  'Förberedelser':{bg:'#EBFBEE',color:'#2F9E44'},
+  'Planera':{bg:'#E7F5FF',color:'#228BE6'},
+  'Omvärldsbevakning':{bg:'#FFF9DB',color:'#F59F00'},
+  'Krisläge':{bg:'#FFF5F5',color:'#E03131'},
+  'Verktyg':{bg:'#FFF4E6',color:'#D9480F'},
+  'Profil':{bg:'#F3F0FF',color:'#7048E8'},
+  '':{bg:'#F1F3F5',color:'#495057'},
+};
+
+const DEFAULTS=[
+  {id:1,title:'Home dashboard',cat:'',status:'todo',desc:'Readiness score, threat level indicator, 6 phase cards, streak/XP bar.',tags:['interactive'],priority:'high',notes:'Entry point — users land here every time they open the app.'},
+  {id:2,title:'Onboarding — screen 1',cat:'',status:'todo',desc:'Welcome screen. App mission statement. 20-second skip option.',tags:['interactive'],priority:'high',notes:'First impression. Keep it fast.'},
+  {id:3,title:'Onboarding — screen 2',cat:'',status:'todo',desc:'Municipality picker. All 290 Swedish municipalities searchable.',tags:['interactive'],priority:'high',notes:'Sets all local data — shelters, P4 frequency, contacts.'},
+  {id:4,title:'Onboarding — screen 3',cat:'',status:'todo',desc:'Household setup. Number of adults, children, pets, elderly, special needs.',tags:['interactive'],priority:'high',notes:'Used to calculate kit quantities throughout the app.'},
+  {id:5,title:'Förberedelser — overview',cat:'Förberedelser',status:'todo',desc:'Category home screen. Shows 5 sub-module cards with individual progress bars.',tags:['interactive'],priority:'high',notes:''},
+  {id:6,title:'72-timmarskitet',cat:'Förberedelser',status:'todo',desc:'Interactive 72-hour kit checklist. ~15 items with affiliate links. Progress bar.',tags:['affiliate','interactive'],priority:'high',notes:'Most important checklist. Connects to readiness score.'},
+  {id:7,title:'Flyktkofferten',cat:'Förberedelser',status:'todo',desc:'Bug-out bag checklist. Weight guide per item. Affiliate links for gear.',tags:['affiliate','interactive'],priority:'high',notes:'Separate from 72h kit — for 5-minute evacuations.'},
+  {id:8,title:'Matlagret',cat:'Förberedelser',status:'todo',desc:'7-day food supply planner. Calorie calculator based on household size.',tags:['affiliate','interactive','reminder'],priority:'high',notes:'Links to food expiry tracker in Verktyg.'},
+  {id:9,title:'Hälsa & medicin',cat:'Förberedelser',status:'todo',desc:'Medication checklist. 30-day prescription reserve guide.',tags:['affiliate','reminder'],priority:'medium',notes:'Links to medicine tracker in Verktyg.'},
+  {id:10,title:'Ström & värme',cat:'Förberedelser',status:'todo',desc:'Power and heat alternatives. Affiliate links for solar panels, gas heaters.',tags:['affiliate'],priority:'medium',notes:''},
+  {id:11,title:'En vecka utan samhälle',cat:'Förberedelser',status:'todo',desc:'Day-by-day scenario guide for surviving a full week without society.',tags:[],priority:'medium',notes:'Day 1 through Day 7 content.'},
+  {id:12,title:'Planera — overview',cat:'Planera',status:'todo',desc:'Category home screen. 5 sub-module entry cards.',tags:[],priority:'high',notes:''},
+  {id:13,title:'Närmaste skyddsrum',cat:'Planera',status:'todo',desc:'Offline map of all civil defence shelters in user municipality.',tags:['map'],priority:'high',notes:'Requires offline tile caching. Distance + walking directions.'},
+  {id:14,title:'Vattenkällor',cat:'Planera',status:'todo',desc:'Map of lakes, streams, municipal standpipes. Purification rating per source.',tags:['map','affiliate'],priority:'high',notes:''},
+  {id:15,title:'Evakueringsvägar',cat:'Planera',status:'todo',desc:'Primary + secondary evacuation routes. On-foot alternatives.',tags:['map','interactive'],priority:'high',notes:'User can save a custom destination (e.g. summer cottage).'},
+  {id:16,title:'Sjukhus & vård',cat:'Planera',status:'todo',desc:'Nearest A&E and clinic. Phone numbers stored offline.',tags:['map'],priority:'medium',notes:'Includes 1177 triage guide for self-assessment.'},
+  {id:17,title:'Familjeplan',cat:'Planera',status:'todo',desc:'User fills in 3 meeting points + out-of-region contact. PDF export.',tags:['interactive'],priority:'high',notes:'User data — stored in SQLite locally, never synced.'},
+  {id:18,title:'Omvärldsbevakning — overview',cat:'Omvärldsbevakning',status:'todo',desc:'Category home screen. 5 sub-module entry cards.',tags:[],priority:'high',notes:''},
+  {id:19,title:'Sveriges Radio P4',cat:'Omvärldsbevakning',status:'todo',desc:'All 21 county FM frequencies. Tap county → see frequency. Radio setup guide.',tags:['interactive'],priority:'high',notes:'All frequency data bundled offline.'},
+  {id:20,title:'VMA-signaler',cat:'Omvärldsbevakning',status:'todo',desc:'All 5 Swedish alarm signals explained with what action to take.',tags:[],priority:'high',notes:'Includes Hesa Fredrik, Viktigt meddelande, Faran över.'},
+  {id:21,title:'Hotnivåer',cat:'Omvärldsbevakning',status:'todo',desc:'Sweden 5-level threat scale. What each level means + actions to take.',tags:[],priority:'high',notes:'Source: SÄPO and Swedish government.'},
+  {id:22,title:'Desinformation',cat:'Omvärldsbevakning',status:'todo',desc:'3-step source verification. Common wartime disinformation tactics.',tags:[],priority:'medium',notes:''},
+  {id:23,title:'Kommunikation utan nät',cat:'Omvärldsbevakning',status:'todo',desc:'SMS vs call in crisis. Battery saving guide. Walkie-talkie + satellite options.',tags:['affiliate'],priority:'medium',notes:''},
+  {id:24,title:'Krisläge — aktivering',cat:'Krisläge',status:'todo',desc:'Confirmation screen before entering Crisis Mode. Full UI shift to red.',tags:['crisis','interactive'],priority:'high',notes:'Confirmation step prevents accidental activation.'},
+  {id:25,title:'Krisläge — scenario-väljare',cat:'Krisläge',status:'todo',desc:'7 large buttons: What is happening right now? Routes to correct decision tree.',tags:['crisis','interactive'],priority:'high',notes:'112 button always visible at top of screen.'},
+  {id:26,title:'Scenario: Luftlarm hörs',cat:'Krisläge',status:'todo',desc:'Air raid sirens. Step-by-step: seek shelter, stay inside, listen to P4.',tags:['crisis','map'],priority:'high',notes:''},
+  {id:27,title:'Scenario: Strömavbrott 48h+',cat:'Krisläge',status:'todo',desc:'Extended power outage. Heat, food, water, communication steps.',tags:['crisis'],priority:'high',notes:''},
+  {id:28,title:'Scenario: Evakuering krävs',cat:'Krisläge',status:'todo',desc:'Must leave now. Bug-out bag → gas/water off → evacuation route.',tags:['crisis','map'],priority:'high',notes:''},
+  {id:29,title:'Scenario: Familjemedlem skadad',cat:'Krisläge',status:'todo',desc:'Injury without hospital access. Call 112, assess, stop bleeding.',tags:['crisis'],priority:'high',notes:'Links to first aid guide in Verktyg.'},
+  {id:30,title:'Scenario: Kan ej nå familj',cat:'Krisläge',status:'todo',desc:'Separated from family. Meeting points → wait protocol → P4.',tags:['crisis'],priority:'high',notes:''},
+  {id:31,title:'Scenario: Explosion / kemisk incident',cat:'Krisläge',status:'todo',desc:'Go inside, close ventilation, call 112, listen to P4.',tags:['crisis'],priority:'medium',notes:''},
+  {id:32,title:'Scenario: Inkallad till civilplikt',cat:'Krisläge',status:'todo',desc:'Called to civil duty. Confirm → activate family plan → report.',tags:['crisis'],priority:'medium',notes:''},
+  {id:33,title:'Verktyg — overview',cat:'Verktyg',status:'todo',desc:'Category home. Shows 3 tracker cards + 6 skill guide cards.',tags:[],priority:'high',notes:''},
+  {id:34,title:'Vattenspåraren',cat:'Verktyg',status:'todo',desc:'Log litres + fill date. Freshness indicator. Push reminder at 30 days.',tags:['reminder','interactive'],priority:'high',notes:'Unique feature — no other Swedish app has this.'},
+  {id:35,title:'Matförrådskalendern',cat:'Verktyg',status:'todo',desc:'Log food items + best-before dates. Timeline view. Push reminder 60 days out.',tags:['reminder','interactive'],priority:'high',notes:''},
+  {id:36,title:'Medicinspåraren',cat:'Verktyg',status:'todo',desc:'Log medications + expiry. Push reminder 60 days before.',tags:['reminder','interactive'],priority:'high',notes:'Prescription renewal guide included.'},
+  {id:37,title:'Första hjälpen',cat:'Verktyg',status:'todo',desc:'Illustrated guides: CPR, bleeding, burns, fractures, shock, hypothermia.',tags:[],priority:'high',notes:'Source: 1177 + Swedish Red Cross.'},
+  {id:38,title:'Vattenrening',cat:'Verktyg',status:'todo',desc:'4 purification methods: boiling, chemical, filter, SODIS.',tags:['affiliate'],priority:'medium',notes:''},
+  {id:39,title:'Mental hälsa i kris',cat:'Verktyg',status:'todo',desc:'Box breathing tool. 5-4-3-2-1 grounding. Talking to children about war.',tags:['interactive'],priority:'medium',notes:''},
+  {id:40,title:'Eld & tillagning',cat:'Verktyg',status:'todo',desc:'Cooking without power. Camp stove guide. Indoor fire safety.',tags:['affiliate'],priority:'medium',notes:''},
+  {id:41,title:'Navigation & signalering',cat:'Verktyg',status:'todo',desc:'Compass use, map reading, SOS signal patterns.',tags:['affiliate'],priority:'low',notes:''},
+  {id:42,title:'Profil — overview',cat:'Profil',status:'todo',desc:'Category home. 6 settings module cards.',tags:[],priority:'medium',notes:''},
+  {id:43,title:'Mitt hushåll',cat:'Profil',status:'todo',desc:'Adults, children, pets, elderly, special needs. Recalculates kit quantities.',tags:['interactive'],priority:'high',notes:''},
+  {id:44,title:'Min kommun',cat:'Profil',status:'todo',desc:'Municipality picker. Shows P4 frequency + crisis coordinator phone.',tags:['interactive'],priority:'high',notes:''},
+  {id:45,title:'Nödkontakter',cat:'Profil',status:'todo',desc:'Emergency contact list. Stored locally. PDF print export.',tags:['interactive'],priority:'high',notes:'Never synced to cloud — local SQLite only.'},
+  {id:46,title:'Kunskapsbank',cat:'Profil',status:'todo',desc:'Full-text search across all app content. Source list with version date.',tags:[],priority:'medium',notes:'SQLite FTS5 for fast offline search.'},
+  {id:47,title:'Beredskapspoäng',cat:'Profil',status:'todo',desc:'Score breakdown per category. What improves score. Streak + XP display.',tags:['interactive'],priority:'medium',notes:''},
+  {id:48,title:'Inställningar',cat:'Profil',status:'todo',desc:'Dark/light mode, font size, notification toggles, analytics opt-in.',tags:[],priority:'low',notes:''},
+];
+
+let pages=[], nextId=200;
+
+function init(){
+  try{
+    const d=JSON.parse(localStorage.getItem('kb_v2'));
+    if(d&&Array.isArray(d.pages)&&d.pages.length){
+      pages=d.pages; nextId=d.nextId||200; render(); return;
+    }
+  }catch(e){}
+  reset();
+}
+
+function reset(){
+  pages=DEFAULTS.map(p=>({...p}));
+  nextId=200; save(); render();
+}
+
+function save(){
+  try{ localStorage.setItem('kb_v2',JSON.stringify({pages,nextId})); }catch(e){}
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function highlight(text, q){
+  if(!q) return esc(text);
+  const safe=esc(text);
+  const re=new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi');
+  return safe.replace(re,'<mark>$1</mark>');
+}
+
+function getFiltered(){
+  const q=(document.getElementById('search').value||'').toLowerCase().trim();
+  const fc=document.getElementById('fCat').value;
+  const ft=document.getElementById('fTag').value;
+  return pages.filter(p=>{
+    if(fc && p.cat!==fc) return false;
+    if(ft && !p.tags.includes(ft)) return false;
+    if(q && !p.title.toLowerCase().includes(q) && !p.desc.toLowerCase().includes(q) && !p.cat.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function render(){
+  const q=(document.getElementById('search').value||'').toLowerCase().trim();
+  const filtered=getFiltered();
+  renderStats();
+  const board=document.getElementById('board');
+  board.innerHTML='';
+
+  COLS.forEach(col=>{
+    const colPages=filtered.filter(p=>p.status===col.id);
+    const colEl=document.createElement('div');
+    colEl.className='col';
+    colEl.dataset.col=col.id;
+    colEl.innerHTML=`
+      <div class="col-header">
+        <div class="col-title">
+          <div class="col-dot" style="background:${col.color}"></div>
+          ${esc(col.label)}
+        </div>
+        <span class="col-count">${colPages.length}</span>
+      </div>
+      <div class="col-body" id="body-${col.id}"></div>
+      <button class="add-btn" onclick="openModal(null,'${col.id}')">+ Add page to this column</button>
+    `;
+    board.appendChild(colEl);
+
+    const body=colEl.querySelector('.col-body');
+
+    if(colPages.length===0){
+      body.innerHTML='<div class="empty-col">Drop cards here</div>';
+    }
+
+    colPages.forEach(p=>{
+      const cs=CAT_STYLES[p.cat]||CAT_STYLES[''];
+      const card=document.createElement('div');
+      card.className='card';
+      card.draggable=true;
+      card.dataset.id=p.id;
+
+      const tagHtml=p.tags.map(t=>`<span class="tag tag-${t}">${t}</span>`).join('');
+      const prioHtml=p.priority==='high'?'<span class="tag tag-high">high priority</span>':p.priority==='low'?'<span class="tag tag-low">low</span>':'';
+      const noteHtml=p.notes?`<div class="card-note">${highlight(p.notes,q)}</div>`:'';
+
+      card.innerHTML=`
+        <div class="card-header">
+          <div class="card-title">${highlight(p.title,q)}</div>
+          <span class="cat-badge" style="background:${cs.bg};color:${cs.color}">${p.cat||'Core'}</span>
+        </div>
+        <div class="card-desc">${highlight(p.desc,q)}</div>
+        ${tagHtml||prioHtml?`<div class="card-tags">${tagHtml}${prioHtml}</div>`:''}
+        ${noteHtml}
+        <div class="card-footer">
+          <span class="card-id">#${p.id}</span>
+          <div class="card-actions">
+            <button class="act-btn" onclick="openModal(${p.id})">Edit</button>
+            <button class="act-btn" onclick="movePrompt(${p.id})">Move</button>
+            <button class="act-btn danger" onclick="del(${p.id})">Delete</button>
+          </div>
+        </div>`;
+
+      card.addEventListener('dragstart',e=>{
+        e.dataTransfer.setData('text/plain',String(p.id));
+        e.dataTransfer.effectAllowed='move';
+        setTimeout(()=>card.classList.add('dragging'),0);
+      });
+      card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+      body.appendChild(card);
+    });
+
+    colEl.addEventListener('dragover',e=>{e.preventDefault();colEl.classList.add('drag-over')});
+    colEl.addEventListener('dragleave',e=>{if(!colEl.contains(e.relatedTarget))colEl.classList.remove('drag-over')});
+    colEl.addEventListener('drop',e=>{
+      e.preventDefault();
+      colEl.classList.remove('drag-over');
+      const id=parseInt(e.dataTransfer.getData('text/plain'));
+      const pg=pages.find(x=>x.id===id);
+      if(pg&&pg.status!==col.id){pg.status=col.id;save();render();}
+    });
+  });
+}
+
+function renderStats(){
+  const total=pages.length;
+  const done=pages.filter(p=>p.status==='done').length;
+  const pct=total?Math.round(done/total*100):0;
+  const high=pages.filter(p=>p.priority==='high').length;
+  const aff=pages.filter(p=>p.tags.includes('affiliate')).length;
+  const remind=pages.filter(p=>p.tags.includes('reminder')).length;
+  const f=getFiltered().length;
+  document.getElementById('statsBar').innerHTML=`
+    <div class="stat"><span class="stat-dot" style="background:#868E96"></span><span class="stat-val">${total}</span>total pages</div>
+    <div class="stat">
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <span class="stat-val">${pct}%</span>
+      </div>
+      complete (${done}/${total})
+    </div>
+    <div class="stat"><span class="stat-dot" style="background:#D9480F"></span><span class="stat-val">${high}</span>high priority</div>
+    <div class="stat"><span class="stat-dot" style="background:#F59F00"></span><span class="stat-val">${aff}</span>with affiliate links</div>
+    <div class="stat"><span class="stat-dot" style="background:#2F9E44"></span><span class="stat-val">${remind}</span>with reminders</div>
+    ${f!==total?`<div class="stat"><span class="stat-dot" style="background:#228BE6"></span><span class="stat-val">${f}</span>showing</div>`:''}
+  `;
+}
+
+function openModal(id, defStatus){
+  const p=id?pages.find(x=>x.id===id):null;
+  const allTags=['affiliate','reminder','interactive','map','crisis'];
+  const wrap=document.getElementById('modalWrap');
+  wrap.innerHTML=`<div class="overlay" id="ov" onclick="if(event.target.id==='ov')closeModal()">
+    <div class="modal">
+      <h2>${p?'Edit page':'New page'}</h2>
+      <div class="field"><label>Title</label><input id="m-title" value="${p?esc(p.title):''}" placeholder="Page title..."></div>
+      <div class="field"><label>Category</label>
+        <select id="m-cat">
+          <option value="">Core / General</option>
+          ${['Förberedelser','Planera','Omvärldsbevakning','Krisläge','Verktyg','Profil'].map(c=>`<option${p&&p.cat===c?' selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Status</label>
+        <select id="m-status">
+          ${COLS.map(c=>`<option value="${c.id}"${(p?p.status:defStatus||'todo')===c.id?' selected':''}>${c.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Description</label><textarea id="m-desc">${p?esc(p.desc):''}</textarea></div>
+      <div class="field"><label>Tags</label>
+        <div class="checkgroup">${allTags.map(t=>`<label class="checklabel"><input type="checkbox" value="${t}"${p&&p.tags.includes(t)?' checked':''}>${t}</label>`).join('')}</div>
+      </div>
+      <div class="field"><label>Priority</label>
+        <select id="m-prio">
+          <option value="high"${p&&p.priority==='high'?' selected':''}>High</option>
+          <option value="medium"${!p||p.priority==='medium'?' selected':''}>Medium</option>
+          <option value="low"${p&&p.priority==='low'?' selected':''}>Low</option>
+        </select>
+      </div>
+      <div class="field"><label>Notes</label><textarea id="m-notes" style="min-height:54px">${p?esc(p.notes||''):''}</textarea></div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveModal(${p?p.id:'null'})">${p?'Save changes':'Add page'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function closeModal(){ document.getElementById('modalWrap').innerHTML=''; }
+
+function saveModal(id){
+  const title=document.getElementById('m-title').value.trim();
+  if(!title){ alert('Title is required'); return; }
+  const tags=[...document.querySelectorAll('#modalWrap input[type=checkbox]:checked')].map(c=>c.value);
+  const data={
+    title,
+    cat:document.getElementById('m-cat').value,
+    status:document.getElementById('m-status').value,
+    desc:document.getElementById('m-desc').value.trim(),
+    tags,
+    priority:document.getElementById('m-prio').value,
+    notes:document.getElementById('m-notes').value.trim(),
+  };
+  if(id!==null&&id!=='null'){
+    Object.assign(pages.find(x=>x.id===id),data);
+  } else {
+    pages.push({id:nextId++,...data});
+  }
+  save(); closeModal(); render();
+}
+
+function del(id){
+  if(!confirm('Delete this page?')) return;
+  pages=pages.filter(p=>p.id!==id);
+  save(); render();
+}
+
+function movePrompt(id){
+  const p=pages.find(x=>x.id===id);
+  const opts=COLS.map((c,i)=>`${i+1}. ${c.label}${c.id===p.status?' (current)':''}`).join('\n');
+  const n=prompt(`Move "${p.title}" to:\n\n${opts}\n\nEnter number (1–5):`);
+  if(!n) return;
+  const col=COLS[parseInt(n)-1];
+  if(col){ p.status=col.id; save(); render(); }
+}
+
+function exportJSON(){
+  const out={
+    exportedAt:new Date().toISOString(),
+    totalPages:pages.length,
+    donePages:pages.filter(p=>p.status==='done').length,
+    pages
+  };
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}));
+  a.download='krisberedskap_build_board.json';
+  a.click();
+}
+
+init();
+</script>
+</body>
+</html>
